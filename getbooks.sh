@@ -19,7 +19,7 @@ function show_help()
     echo "  -v             show verbose output (for debugging)"
     echo "  -h, --help     display this message and exit"
     echo 
-    echo "  Report bugs to josh@nispio.net"
+    echo "  Report bugs to josh+git@nispio.net"
 }
 
 # Check for --help option
@@ -178,7 +178,7 @@ do
 done
 
 
-# Copyright 2013 Josh Hunsaker (josh@nispio.net)
+# Copyright 2013 Josh Hunsaker (josh+git@nispio.net)
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
