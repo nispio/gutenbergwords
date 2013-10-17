@@ -3,9 +3,9 @@ gutenbergwords
 
 Script used to download random books from Project Gutenberg's catalog and strip out all punctuation.
 
-    Usage: `basename $0` [-v] [-f FILE] [-o FOLDER]
-           `basename $0` [-v] [-b BOOK] [-o FOLDER] [[-m] URL]
-           `basename $0` [-v] [-n NUM]  [-o FOLDER] [[-m] URL]
+    Usage: ./getbooks.sh [-v] [-f FILE] [-o FOLDER]
+           ./getbooks.sh [-v] [-b BOOK] [-o FOLDER] [[-m] URL]
+           ./getbooks.sh [-v] [-n NUM]  [-o FOLDER] [[-m] URL]
     Retrieve book(s) from Project Gutenberg catalog and strip the file
     of all characters except A-Z and <space>.
       -f FILE        open and partse the book found at FILE
