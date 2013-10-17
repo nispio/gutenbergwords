@@ -19,4 +19,4 @@ Script used to download random books from Project Gutenberg's catalog and strip 
       -v             show verbose output (for debugging)
       -h, --help     display this message and exit
     
-Report bugs to josh@nispio.ne
+Report bugs to josh@nispio.net
