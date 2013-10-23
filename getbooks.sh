@@ -87,35 +87,42 @@ function strip_book()
     #   Each Project Gutenberg book has a header and footer with copyright
     #   and other information.  Since this text is (nearly) identical in
     #   every book, it would introduce a bias in our training data.  For
-    #   that reason, we trim it out of the file.
+    #   that reason, we trim it out of the file. We also discard some
+    #   pre-determined number of lines at the beginning and end of the book,
+    #   since these lines often contain tables of contents and indices whose
+    #   content is atypical of English prose.
     #  
     HEADER_START="START OF (THE|THIS) PROJECT GUTENBERG EBOOK"
     FOOTER_START="END OF (THE|THIS) PROJECT GUTENBERG EBOOK"
     bookstart=$(grep -n -m 1 -i -E "$HEADER_START" "$BOOK" | cut -f1 -d':')
     bookend=$(grep -n -m 1 -i -E "$FOOTER_START" "$BOOK" | cut -f1 -d':')
+    prescript=100
+    postscript=100
     total_lines=$(wc -l "$BOOK" | cut -f1 -d' ')
 
     # Trim Gutenberg headers and footers and remove DOS line endings
-    t=$(($total_lines - $bookstart))
-    h=$(($bookend - $bookstart))
-    cat "$BOOK" | tail -n $t | head -n $h | tr -d '\r' > "$OUTFILE"
+    t=$(($total_lines - $bookstart - $prescript))
+    h=$(($bookend - $bookstart - $prescript - $postscript))
+    tail -n $t "$BOOK" | head -n $h | tr -d '\r' > "$OUTFILE"
 
     # Use sed to achieve the following (in order):
     #   Set a label
     #   Read in the next line
     #   If we aren't at the end of the file go back to label 'a'
     #   Replace line endings with a space
-    #   Convert all upper-case letters to lower-case
+    #   Convert all letters to upper-case
+    #   Trim apostrophes (otherwise we see lots of orphaned s chars
     #   Throw out any characters that aren't a-z or <space>
-    #   Remove any extra <space> characters
+    #   Convert any amount of whitespace into a single @ character
     sed -i \
         -e ':a' \
         -e 'N' \
         -e '$!ba' \
         -e 'y/\n/ /' \
-        -e 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' \
-        -e 's/[^a-z ]//g' \
-        -e 's/\s\+/ /g' \
+        -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
+        -e 's/\([A-Z]\)'"'"'\([A-Z]\)/\1\2/g' \
+        -e 's/[^A-Z ]/ /g' \
+        -e 's/\s\+/@/g' \
         "$OUTFILE"
 
     echo Words saved to file "$OUTFILE"
