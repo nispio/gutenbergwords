@@ -2,24 +2,27 @@
 
 function show_help()
 {
-    echo "Usage: `basename $0` [-v] [-f FILE] [-o FOLDER]"
-    echo "       `basename $0` [-v] [-b BOOK] [-o FOLDER] [[-m] URL]"
-    echo "       `basename $0` [-v] [-n NUM]  [-o FOLDER] [[-m] URL]"
-    echo "Retrieve book(s) from Project Gutenberg catalog and strip the file"
-    echo "of all characters except A-Z and <space>."
-    echo
-    echo "  -f FILE        open and partse the book found at FILE"
-    echo "                   (this will ignore options -b -n -m)"
-    echo "  -b BOOK        download and parse book number BOOK from PG catalog"
-    echo "                   (this will ignore option -n)"
-    echo "  -n NUM         download NUM random books (default 1)"
-    echo "  -o FOLDER      save results to FOLDER (default \"./books\")"
-    echo "  -m URL         retrieve books from mirror at URL"
-    echo "                   (default \"ftp://mirrors.xmission.com/gutenberg\")"
-    echo "  -v             show verbose output (for debugging)"
-    echo "  -h, --help     display this message and exit"
-    echo 
-    echo "  Report bugs to josh+git@nispio.net"
+  echo "Usage: `basename $0` [-v] [-l] [-f FILE] [-d FOLDER]"
+  echo "       `basename $0` [-v] [-l] [-n NUM]  [-d FOLDER] [[-m] URL]"
+  echo "       `basename $0` [-v] [-l] [-b BOOK] [-o OUT] [[-m] URL]"
+  echo "Retrieve book(s) from Project Gutenberg catalog and strip the file"
+  echo "of all characters except A-Z and <space>."
+  echo
+  echo "  -f FILE        open and partse the book found at FILE"
+  echo "                   (this will ignore options -b -n -m)"
+  echo "  -b BOOK        download and parse book number BOOK from PG catalog"
+  echo "                   (this will ignore option -n)"
+  echo "  -n NUM         download NUM random books (default 1)"
+  echo "  -d FOLDER      save results to FOLDER (default \"books/words\")"
+  echo "  -o FILE        save results to output file FILE"
+  echo "  -m URL         retrieve books from mirror at URL"
+  echo "                   (default \"ftp://mirrors.xmission.com/gutenberg\")"
+  echo "  -u             do not strip header and footer"
+  echo "  -l             language agnostic download"
+  echo "  -v             show verbose output (for debugging)"
+  echo "  -h, --help     display this message and exit"
+  echo 
+  echo "  Report bugs to josh+git@nispio.net"
 }
 
 # Check for --help option
@@ -30,7 +33,9 @@ MIRROR="ftp://mirrors.xmission.com/gutenberg/"
 BOOK_FOLDER="./books"
 ITERS=10
 BOOK_NUM=0
+STRIP_HEADERS=1
 LANG="ENGLISH"
+OUTPUT_FOLDER="${BOOK_FOLDER%%/}/words"
 
 # NOTE: The Project Gutenberg Terms of Service state that the site is intended
 # for human users only. For that reason, this script uses a mirror site rather
@@ -39,16 +44,19 @@ LANG="ENGLISH"
 #  www.gutenberg.org/wiki/Gutenberg:Information_About_Robot_Access_to_our_Pages
 #
 
-OPTIND=1                        # Reset in case getopts has been used previously
-opts="hvf:b:n:o:m:"                  # Options for call to getopts
+OPTIND=1                       # Reset in case getopts has been used previously
+opts="hvlf:b:n:d:o:m:"         # Options for call to getopts
 # Parse input arguments
 while getopts "$opts" opt; do
     case "$opt" in
         h)  show_help; exit 0 ;;
         v)  set -x ;;
+        l)  LANG="" ;;
+        u)  STRIP_HEADERS="" ;;
         f)  BOOK_FILE="$OPTARG" ;;
         n)  ITERS="$OPTARG" ;;
         b)  BOOK_NUM="$OPTARG"; ITERS=1 ;;
+        d)  OUTPUT_FOLDER="$OPTARG" ;;
         o)  BOOK_FOLDER="$OPTARG" ;;
         m)  MIRROR="$OPTARG" ;;
         \?) echo "Invalid option: -$OPTARG"; exit 1 ;;
@@ -56,11 +64,8 @@ while getopts "$opts" opt; do
     esac
 done
 
-# The folder in which the modified files should be placed
-OUTPUT_FOLDER="${BOOK_FOLDER%%/}/words"
-
-if [ ! -d "$BOOK_FOLDER" ]; then mkdir "$BOOK_FOLDER"; fi
-if [ ! -d "${BOOK_FOLDER%%/}/words" ]; then mkdir "${BOOK_FOLDER%%/}/words"; fi
+[ ! -d "$BOOK_FOLDER" ]   &&  mkdir "$BOOK_FOLDER"
+[ ! -d "$OUTPUT_FOLDER" ] &&  mkdir "$OUTPUT_FOLDER"
 
 # Function that strips the headers/footers and punctuation
 function strip_book()
@@ -70,7 +75,7 @@ function strip_book()
 
     # Make sure the book is in the selected language
     book_lang=$(grep -m 1 -i -E '^Language:' "$BOOK" | cut -f2 -d' ' )
-    if [ -z "$book_lang" ]
+    if [ -n "$LANG" ] && [ -z "$book_lang" ]
     then
 	echo "This book's language could not be determined. Skipping."
 	echo;
@@ -92,18 +97,27 @@ function strip_book()
     #   since these lines often contain tables of contents and indices whose
     #   content is atypical of English prose.
     #  
-    HEADER_START="START OF (THE|THIS) PROJECT GUTENBERG EBOOK"
-    FOOTER_START="END OF (THE|THIS) PROJECT GUTENBERG EBOOK"
-    bookstart=$(grep -n -m 1 -i -E "$HEADER_START" "$BOOK" | cut -f1 -d':')
-    bookend=$(grep -n -m 1 -i -E "$FOOTER_START" "$BOOK" | cut -f1 -d':')
-    prescript=100
-    postscript=100
-    total_lines=$(wc -l "$BOOK" | cut -f1 -d' ')
+    if [ -n "$STRIP_HEADERS" ]
+    then
+	HEADER_START="START OF (THE|THIS) PROJECT GUTENBERG EBOOK"
+	FOOTER_START="END OF (THE|THIS) PROJECT GUTENBERG EBOOK"
+	bookstart=$(grep -n -m 1 -i -E "$HEADER_START" "$BOOK" | cut -f1 -d':')
+	bookend=$(grep -n -m 1 -i -E "$FOOTER_START" "$BOOK" | cut -f1 -d':')
+	prescript=100
+	postscript=100
+	total_lines=$(wc -l "$BOOK" | cut -f1 -d' ')
 
-    # Trim Gutenberg headers and footers and remove DOS line endings
-    t=$(($total_lines - $bookstart - $prescript))
-    h=$(($bookend - $bookstart - $prescript - $postscript))
-    tail -n $t "$BOOK" | head -n $h | tr -d '\r' > "$OUTFILE"
+	# If the header or footer were not found, don't worry about it
+	[ -z "$bookstart" ] && bookstart=0
+	[ -z "$bookend" ] && bookend=0
+
+	# Trim Gutenberg headers and footers and remove DOS line endings
+	t=$(($total_lines - $bookstart - $prescript))
+	h=$(($bookend - $bookstart - $prescript - $postscript))
+	tail -n $t "$BOOK" | head -n $h | tr -d '\r' > "$OUTFILE"
+    else
+	cat "$BOOK" |  tr -d '\r' > "$OUTFILE"
+    fi
 
     # Use sed to achieve the following (in order):
     #   Set a label
