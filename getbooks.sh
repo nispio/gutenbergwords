@@ -2,9 +2,9 @@
 
 function show_help()
 {
-  echo "Usage: `basename $0` [-v] [-l] [-f FILE] [-d FOLDER]"
-  echo "       `basename $0` [-v] [-l] [-n NUM]  [-d FOLDER] [[-m] URL]"
-  echo "       `basename $0` [-v] [-l] [-b BOOK] [-o OUT] [[-m] URL]"
+  echo "Usage: `basename $0` [-f FILE] [[-d FOLDER] | [-o OUT]]"
+  echo "       `basename $0` [-n NUM] [-m URL] [-d FOLDER]"
+  echo "       `basename $0` [-b BOOK] [-m URL] [[-d FOLDER] | [-o OUT]]"
   echo "Retrieve book(s) from Project Gutenberg catalog and strip the file"
   echo "of all characters except A-Z and <space>."
   echo
@@ -13,12 +13,13 @@ function show_help()
   echo "  -b BOOK        download and parse book number BOOK from PG catalog"
   echo "                   (this will ignore option -n)"
   echo "  -n NUM         download NUM random books (default 1)"
-  echo "  -d FOLDER      save results to FOLDER (default \"books/words\")"
+  echo "  -d FOLDER      save results to FOLDER (default \"./words/\")"
   echo "  -o FILE        save results to output file FILE"
+  echo "                   (do not use with option -n)"
   echo "  -m URL         retrieve books from mirror at URL"
   echo "                   (default \"ftp://mirrors.xmission.com/gutenberg\")"
   echo "  -u             do not strip header and footer"
-  echo "  -l             language agnostic download"
+  echo "  -l             language-agnostic download"
   echo "  -v             show verbose output (for debugging)"
   echo "  -h, --help     display this message and exit"
   echo 
@@ -30,12 +31,13 @@ if [ "$1" = "--help" ]; then show_help; exit 0; fi
 
 # Set default values
 MIRROR="ftp://mirrors.xmission.com/gutenberg/"
-BOOK_FOLDER="./books"
+BOOK_FOLDER="./books/"
+OUTPUT_FOLDER="./words/"
+TARGET_PATH=""
 ITERS=10
 BOOK_NUM=0
 STRIP_HEADERS=1
 LANG="ENGLISH"
-OUTPUT_FOLDER="${BOOK_FOLDER%%/}/words"
 
 # NOTE: The Project Gutenberg Terms of Service state that the site is intended
 # for human users only. For that reason, this script uses a mirror site rather
@@ -59,7 +61,7 @@ while getopts "$opts" opt; do
         d)  OUTPUT_FOLDER="$OPTARG" ;;
         o)  BOOK_FOLDER="$OPTARG" ;;
         m)  MIRROR="$OPTARG" ;;
-        \?) echo "Invalid option: -$OPTARG"; exit 1 ;;
+        \?) exit 1 ;;
         :)  echo "Option -$OPTARG requires an argument"; exit 1 ;;
     esac
 done
@@ -182,7 +184,9 @@ do
     # Generate the appropriate URL and filename for the given book number
     BOOK_URL="${MIRROR%%/}/${a4}/${a3}/${a2}/${a1}/${n}/${n}.txt"
     BOOK="$BOOK_FOLDER/${n}.txt"
-    OUTFILE="$OUTPUT_FOLDER/${n}.out"
+    OUTFILE="${OUTPUT_FOLDER%%/}/${n}.out"
+
+    [ -n "$TARGET_FILE" ] && OUTFILE="$TARGET_FILE"
 
     # Fetch the book from the mirror site
     wget "$BOOK_URL" --output-document="$BOOK" || rm "$BOOK"

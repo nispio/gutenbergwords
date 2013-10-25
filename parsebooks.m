@@ -1,5 +1,4 @@
-FOLDER = 'books/words/';                % Folder containing word data
-FILEEXT = '.out';                       % File extension to look for
+function M = parsebooks(folder, name)
 
 A = uint8('A');                         % ASCII representation of A
 Z = uint8('Z');                         % ASCII representation of Z
@@ -9,12 +8,12 @@ T = ones(C,C);                          % Initialize transition count matrix
 %
 % Loop over all of the files in the specified folder
 %
-filename = ls(sprintf('%s*%s',FOLDER,FILEEXT));
+filename = dir(fullfile(folder,name));
 for book = 1:size(filename,1)
    %
    % Open the file for reading
    %
-   filepath = sprintf('%s%s',FOLDER,filename(book,:));
+   filepath = fullfile(folder,filename(book).name);
    fid = fopen(filepath);
    if fid > 0
        display(sprintf('Reading: "%s"', filepath));
@@ -43,25 +42,8 @@ for book = 1:size(filename,1)
 end
 
 %
-% Set the arrays used for the plot labels
+% Convert transition counts to probabilities
 % 
-Tick = 1:27;
-tl =char(Tick.'+63);
-tl(1) = char('_');
-TickLabel = mat2cell(tl,length(xi),1);
+M = log(T/sum(sum(T)));
 
-%
-% Plot and label the transition count matrix
-%
-figure(1); clf;
-imagesc(log(T)); axis image;
-colormap(gray(256)); colorbar;
-title('Letter Transition Counts (Log Scale)','FontSize',16);
-xlabel('To Letter','FontSize',14);
-ylabel('From Letter','FontSize',14);
-% set(gca,'XAxisLocation','top');
-set(gca,'TickLength',[0 0]);
-set(gca,'XTick',xi);
-set(gca,'XTickLabel',TickLabel);
-set(gca,'YTick',xi);
-set(gca,'YTickLabel',TickLabel);
+end
