@@ -8,7 +8,7 @@ Script used to download random books from Project Gutenberg's catalog and strip 
            ./getbooks.sh [-b BOOK] [-m URL] [[-d FOLDER] | [-o OUT]]
     Retrieve book(s) from Project Gutenberg catalog and strip the file
     of all characters except A-Z and <space>.
-      -f FILE        open and partse the book found at FIL
+      -f FILE        open and parse the book found at FILE
                        (this will ignore options -b -n -m)
       -b BOOK        download and parse book number BOOK from PG catalog
                        (this will ignore option -n)
